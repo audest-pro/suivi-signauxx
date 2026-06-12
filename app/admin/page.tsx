@@ -1,18 +1,10 @@
 import { isAuthenticated, logout } from "@/app/actions/auth"
 import { AdminLogin } from "@/components/admin-login"
-import { CopyColumnButton } from "@/components/copy-column-button"
-import { sql, type Submission } from "@/lib/db"
-import { Button } from "@/components/ui/button"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { LogOut, Users } from "lucide-react"
+import { sql, type Submission, type Signal } from "@/lib/db"
+import { SignalManager } from "@/components/admin-signals"
+import { SubmissionsManager } from "@/components/admin-submissions"
+import { LogOut, Users, Zap, LayoutDashboard } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export const dynamic = "force-dynamic"
 
@@ -37,92 +29,84 @@ export default async function AdminPage() {
     ORDER BY created_at DESC
   `) as Submission[]
 
+  let signals: Signal[] = []
+  try {
+    signals = (await sql`
+      SELECT id, pair, type, entry_price, tp_price, sl_price, status, message, created_at
+      FROM signals
+      ORDER BY created_at DESC
+    `) as Signal[]
+  } catch (e) {
+    console.log("Signals table might not exist yet.")
+  }
+
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10">
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Tableau de bord admin</h1>
-          <p className="mt-1 text-muted-foreground">Toutes les inscriptions enregistrées.</p>
-        </div>
-        <form action={logout}>
-          <Button variant="outline" type="submit">
-            <LogOut className="mr-2 h-4 w-4" />
-            Déconnexion
-          </Button>
-        </form>
-      </div>
+    <main className="min-h-svh bg-background relative overflow-hidden flex flex-col">
+      {/* Background Glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[300px] bg-purple-600/5 blur-[100px] pointer-events-none" />
 
-      <Card className="mb-6">
-        <CardHeader className="flex flex-row items-center gap-3 space-y-0">
-          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-secondary">
-            <Users className="h-5 w-5 text-secondary-foreground" />
-          </div>
-          <div>
-            <CardTitle className="text-3xl">{submissions.length}</CardTitle>
-            <CardDescription>Inscription{submissions.length > 1 ? "s" : ""} au total</CardDescription>
-          </div>
-        </CardHeader>
-      </Card>
-
-      <Card>
-        <CardContent className="p-0">
-          {submissions.length === 0 ? (
-            <p className="p-8 text-center text-muted-foreground">Aucune inscription pour le moment.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>
-                      <span className="align-middle">Prénom</span>
-                      <CopyColumnButton label="Prénoms" values={submissions.map((s) => s.first_name)} />
-                    </TableHead>
-                    <TableHead>
-                      <span className="align-middle">Nom</span>
-                      <CopyColumnButton label="Noms" values={submissions.map((s) => s.last_name)} />
-                    </TableHead>
-                    <TableHead>
-                      <span className="align-middle">Email</span>
-                      <CopyColumnButton label="Emails" values={submissions.map((s) => s.email)} />
-                    </TableHead>
-                    <TableHead>
-                      <span className="align-middle">WhatsApp</span>
-                      <CopyColumnButton label="Numéros WhatsApp" values={submissions.map((s) => s.whatsapp)} />
-                    </TableHead>
-                    <TableHead>Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {submissions.map((s) => (
-                    <TableRow key={s.id}>
-                      <TableCell className="font-medium">{s.first_name}</TableCell>
-                      <TableCell>{s.last_name}</TableCell>
-                      <TableCell>
-                        <a href={`mailto:${s.email}`} className="underline underline-offset-4">
-                          {s.email}
-                        </a>
-                      </TableCell>
-                      <TableCell>
-                        <a
-                          href={`https://wa.me/${s.whatsapp.replace(/[^0-9]/g, "")}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="underline underline-offset-4"
-                        >
-                          {s.whatsapp}
-                        </a>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap text-muted-foreground">
-                        {formatDate(s.created_at)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+      <div className="mx-auto w-full max-w-6xl px-4 py-6 relative z-10 flex flex-col flex-1">
+        {/* Header */}
+        <header className="mb-8 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-purple-500/10">
+              <LayoutDashboard className="text-white h-5 w-5" />
             </div>
-          )}
-        </CardContent>
-      </Card>
+            <div>
+              <h1 className="text-xl font-black italic uppercase tracking-tighter gradient-text leading-tight">
+                Admin
+              </h1>
+              <p className="text-white/30 text-[9px] font-bold uppercase tracking-widest">Dashboard</p>
+            </div>
+          </div>
+          
+          <form action={logout}>
+            <button 
+              type="submit"
+              className="group flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-white/50 font-bold uppercase italic text-[9px] tracking-widest cursor-pointer"
+            >
+              <LogOut className="h-3 w-3" />
+              Sortir
+            </button>
+          </form>
+        </header>
+
+        <Tabs defaultValue="submissions" className="w-full flex-1 flex flex-col">
+          <TabsList className="bg-white/5 border border-white/10 p-1 h-11 rounded-xl mb-6 w-full max-w-xs mx-auto grid grid-cols-2">
+            <TabsTrigger 
+              value="submissions" 
+              className="rounded-lg text-xs data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-indigo-700 data-[state=active]:text-white data-[state=active]:font-black uppercase italic tracking-tighter"
+            >
+              Inscrits
+            </TabsTrigger>
+            <TabsTrigger 
+              value="signals" 
+              className="rounded-lg text-xs data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-indigo-700 data-[state=active]:text-white data-[state=active]:font-black uppercase italic tracking-tighter"
+            >
+              Signaux
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="submissions" className="flex-1">
+            {/* Stats Summary */}
+            <div className="glass-card mb-6 p-4 border border-white/5 flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-purple-600/10 border border-purple-500/20 flex items-center justify-center">
+                <Users className="text-purple-400 h-5 w-5" />
+              </div>
+              <div>
+                <span className="text-2xl font-black italic text-white tracking-tighter leading-none">{submissions.length}</span>
+                <p className="text-white/30 text-[9px] font-bold uppercase tracking-widest mt-0.5">Total Inscrits</p>
+              </div>
+            </div>
+
+            <SubmissionsManager submissions={submissions} />
+          </TabsContent>
+
+          <TabsContent value="signals" className="flex-1">
+            <SignalManager signals={signals} />
+          </TabsContent>
+        </Tabs>
+      </div>
     </main>
   )
 }

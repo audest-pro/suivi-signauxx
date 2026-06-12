@@ -10,3 +10,15 @@ export type Submission = {
   whatsapp: string
   created_at: string
 }
+
+export type Signal = {
+  id: number
+  pair: string
+  type: "BUY" | "SELL"
+  entry_price: string
+  tp_price: string
+  sl_price: string
+  status: "ACTIVE" | "CLOSED"
+  message?: string
+  created_at: string
+}
